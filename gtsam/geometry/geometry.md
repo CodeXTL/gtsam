@@ -22,7 +22,6 @@ classDiagram
 direction TB
 
     class Cal3 {
-        +int dimension = 5
         #double fx
         #double fy
         #double s
