@@ -73,7 +73,6 @@ class GTSAM_EXPORT Cal3 {
   double u0_ = 0.0f, v0_ = 0.0f;  ///< principal point
 
  public:
-  constexpr static auto dimension = 5;
   ///< shared pointer to calibration object
   using shared_ptr = std::shared_ptr<Cal3>;
 
@@ -173,11 +172,9 @@ class GTSAM_EXPORT Cal3 {
   /// Return inverted calibration matrix inv(K)
   Matrix3 inverse() const;
 
-  /// return DOF, dimensionality of tangent space
-  virtual size_t dim() const { return Dim(); }
-
-  /// return DOF, dimensionality of tangent space
-  static size_t Dim() { return dimension; }
+  /// Abstract function that returns DOF, dimensionality of tangent space
+  /// To be overriden in derived classes
+  virtual size_t dim() const = 0;
 
   /// @}
   /// @name Advanced Interface
