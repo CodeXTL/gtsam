@@ -52,6 +52,7 @@ class GTSAM_EXPORT Gal3 : public LieGroup<Gal3, 10> {
   double t_;    ///< Time component
 
  public:
+  using LieAlgebra = Matrix5;
 
   /// The dimension of the tangent space
   inline static constexpr size_t dimension = 10;
