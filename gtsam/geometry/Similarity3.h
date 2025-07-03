@@ -248,9 +248,9 @@ inline Matrix wedge<Similarity3>(const Vector& xi) {
 }
 #endif
 template <>
-struct traits<Similarity3> : public internal::MatrixLieGroup<Similarity3> {};
+struct traits<Similarity3> : public internal::MatrixLieGroup<Similarity3, 4> {};
 
 template <>
-struct traits<const Similarity3> : public internal::MatrixLieGroup<Similarity3> {};
+struct traits<const Similarity3> : public internal::MatrixLieGroup<Similarity3, 4> {};
 
 }  // namespace gtsam

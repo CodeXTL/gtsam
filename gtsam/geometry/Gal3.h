@@ -230,9 +230,9 @@ class GTSAM_EXPORT Gal3 : public MatrixLieGroup<Gal3, 10, 5> {
 
 /// Traits specialization for Gal3
 template <>
-struct traits<Gal3> : public internal::MatrixLieGroup<Gal3> {};
+struct traits<Gal3> : public internal::MatrixLieGroup<Gal3, 5> {};
 
 template <>
-struct traits<const Gal3> : public internal::MatrixLieGroup<Gal3> {};
+struct traits<const Gal3> : public internal::MatrixLieGroup<Gal3, 5> {};
 
 } // namespace gtsam

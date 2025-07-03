@@ -439,10 +439,10 @@ using Pose3Pairs = std::vector<std::pair<Pose3, Pose3> >;
 typedef std::vector<Pose3> Pose3Vector;
 
 template <>
-struct traits<Pose3> : public internal::MatrixLieGroup<Pose3> {};
+struct traits<Pose3> : public internal::MatrixLieGroup<Pose3, 4> {};
 
 template <>
-struct traits<const Pose3> : public internal::MatrixLieGroup<Pose3> {};
+struct traits<const Pose3> : public internal::MatrixLieGroup<Pose3, 4> {};
 
 // bearing and range traits, used in RangeFactor
 template <>

@@ -377,10 +377,10 @@ using Pose2Pair = std::pair<Pose2, Pose2>;
 using Pose2Pairs = std::vector<Pose2Pair>;
 
 template <>
-struct traits<Pose2> : public internal::MatrixLieGroup<Pose2> {};
+struct traits<Pose2> : public internal::MatrixLieGroup<Pose2, 3> {};
 
 template <>
-struct traits<const Pose2> : public internal::MatrixLieGroup<Pose2> {};
+struct traits<const Pose2> : public internal::MatrixLieGroup<Pose2, 3> {};
 
 // bearing and range traits, used in RangeFactor
 template <typename T>

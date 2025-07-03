@@ -53,8 +53,6 @@ constexpr int NSquaredSO(int N) { return (N < 0) ? Eigen::Dynamic : N * N; }
 template <int N>
 class SO : public LieGroup<SO<N>, internal::DimensionSO(N)> {
  public:
-  static constexpr size_t MatrixM = N;
- public:
   inline constexpr static auto dimension = internal::DimensionSO(N);
   using MatrixNN = Eigen::Matrix<double, N, N>;
   using VectorN2 = Eigen::Matrix<double, internal::NSquaredSO(N), 1>;
@@ -401,10 +399,10 @@ void serialize(
  */
 
 template <int N>
-struct traits<SO<N>> : public internal::MatrixLieGroup<SO<N>> {};
+struct traits<SO<N>> : public internal::MatrixLieGroup<SO<N>, N> {};
 
 template <int N>
-struct traits<const SO<N>> : public internal::MatrixLieGroup<SO<N>> {};
+struct traits<const SO<N>> : public internal::MatrixLieGroup<SO<N>, N> {};
 
 }  // namespace gtsam
 

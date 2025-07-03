@@ -110,9 +110,9 @@ void serialize(Archive &ar, SO4 &Q, const unsigned int /*version*/) {
  */
 
 template <>
-struct traits<SO4> : public internal::MatrixLieGroup<SO4> {};
+struct traits<SO4> : public internal::MatrixLieGroup<SO4, 4> {};
 
 template <>
-struct traits<const SO4> : public internal::MatrixLieGroup<SO4> {};
+struct traits<const SO4> : public internal::MatrixLieGroup<SO4, 4> {};
 
 }  // end namespace gtsam

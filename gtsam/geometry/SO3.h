@@ -233,9 +233,9 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
  */
 
 template <>
-struct traits<SO3> : public internal::MatrixLieGroup<SO3> {};
+struct traits<SO3> : public internal::MatrixLieGroup<SO3, 3> {};
 
 template <>
-struct traits<const SO3> : public internal::MatrixLieGroup<SO3> {};
+struct traits<const SO3> : public internal::MatrixLieGroup<SO3, 3> {};
 
 }  // end namespace gtsam

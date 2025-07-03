@@ -23,23 +23,23 @@
 namespace gtsam {
 
   namespace internal {
-    template<class Class, int D, int M>
-    Eigen::Matrix<double, M*M, D> computeVectorizedGenerators() {
-      Eigen::Matrix<double, M*M, D> P_mat;
+    template<class Class, int D, int N>
+    Eigen::Matrix<double, N*N, D> computeVectorizedGenerators() {
+      Eigen::Matrix<double, N*N, D> P_mat;
       for (int i = 0; i < D; ++i) {
         typename Class::TangentVector e_i = Class::TangentVector::Unit(i);
         typename Class::LieAlgebra G_i = Class::Hat(e_i);
-        P_mat.col(i) = Eigen::Map<const Eigen::Matrix<double, M*M, 1>>(G_i.data());
+        P_mat.col(i) = Eigen::Map<const Eigen::Matrix<double, N*N, 1>>(G_i.data());
       }
       return P_mat;
     }
   } // namespace internal
 
   /// A CRTP helper class that implements matrix Lie group methods.
-  /// To use, derive from MatrixLieGroup<Class,D,M> instead of LieGroup<Class,D>.
+  /// To use, derive from MatrixLieGroup<Class,D,N> instead of LieGroup<Class,D>.
   /// Your class must implement a `matrix()` method, static `Hat()/Vee()` methods,
   /// as well as provide a `LieAlgebra` typedef.
-  template<class Class, int D, int M>
+  template<class Class, int D, int N>
   struct MatrixLieGroup : public LieGroup<Class, D> {
     using Base = LieGroup<Class, D>;
     using Base::dimension;
@@ -47,23 +47,20 @@ namespace gtsam {
     using Jacobian = typename Base::Jacobian;
     using TangentVector = typename Base::TangentVector;
 
-    /// The dimension of the matrix representation, e.g., 3 for SO(3).
-    constexpr static int MatrixM = M;
-
     /// Return vectorized matrix representation.
-    Eigen::Matrix<double, M*M, 1> vec(OptionalJacobian<M*M, D> H = {}) const {
+    Eigen::Matrix<double, N*N, 1> vec(OptionalJacobian<N*N, D> H = {}) const {
       const auto& derived = static_cast<const Class&>(*this);
       const auto T = derived.matrix();
       if (H) {
         const auto& P = VectorizedGenerators();
-        // The Jacobian is given by the formula H = (I_M ⊗ T) * P
+        // The Jacobian is given by the formula H = (I_N ⊗ T) * P
         // where P is the matrix of vectorized generators.
         // This can be implemented efficiently with block-wise multiplication.
-        for (int i = 0; i < M; ++i) {
-          H->block(i * M, 0, M, D) = T * P.block(i * M, 0, M, D);
+        for (int i = 0; i < N; ++i) {
+          H->block(i * N, 0, N, D) = T * P.block(i * N, 0, N, D);
         }
       }
-      return Eigen::Map<const Eigen::Matrix<double, M*M, 1>>(T.data());
+      return Eigen::Map<const Eigen::Matrix<double, N*N, 1>>(T.data());
     }
 
     /**
@@ -89,8 +86,8 @@ namespace gtsam {
 
   private:
     /// Pre-compute and store vectorized generators.
-    inline static const Eigen::Matrix<double, M*M, D>& VectorizedGenerators() {
-      static const Eigen::Matrix<double, M*M, D> P = internal::computeVectorizedGenerators<Class, D, M>();
+    inline static const Eigen::Matrix<double, N*N, D>& VectorizedGenerators() {
+      static const Eigen::Matrix<double, N*N, D> P = internal::computeVectorizedGenerators<Class, D, N>();
       return P;
     }
   };
@@ -98,7 +95,7 @@ namespace gtsam {
   namespace internal {
 
     /// Adds LieAlgebra, Hat, Vee, and Vec to LieGroupTraits
-    template <class Class> struct MatrixLieGroupTraits : LieGroupTraits<Class> {
+    template <class Class, int N> struct MatrixLieGroupTraits : LieGroupTraits<Class> {
       using LieAlgebra = typename Class::LieAlgebra;
       using TangentVector = typename LieGroupTraits<Class>::TangentVector;
 
@@ -111,16 +108,16 @@ namespace gtsam {
       }
 
       /// Vectorize the matrix representation of a Lie group element.
-      static Eigen::Matrix<double, Class::MatrixM * Class::MatrixM, 1> Vec(
+      static Eigen::Matrix<double, N * N, 1> Vec(
           const Class& m,
-          OptionalJacobian<Class::MatrixM * Class::MatrixM,
+          OptionalJacobian<N * N,
                            LieGroupTraits<Class>::dimension> H = {}) {
         return m.vec(H);
       }
     };
 
     /// Both LieGroupTraits and Testable
-    template<class Class> struct MatrixLieGroup : MatrixLieGroupTraits<Class>, Testable<Class> {};
+    template<class Class, int N> struct MatrixLieGroup : MatrixLieGroupTraits<Class, N>, Testable<Class> {};
 
   } // \ namespace internal
 

@@ -216,9 +216,9 @@ public:
 };
 
 template <>
-struct traits<Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
+struct traits<Similarity2> : public internal::MatrixLieGroup<Similarity2, 3> {};
 
 template <>
-struct traits<const Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
+struct traits<const Similarity2> : public internal::MatrixLieGroup<Similarity2, 3> {};
 
 }  // namespace gtsam

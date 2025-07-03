@@ -240,10 +240,10 @@ namespace gtsam {
 
   };
 
-  template<>
-  struct traits<Rot2> : public internal::MatrixLieGroup<Rot2> {};
+  template <>
+struct traits<Rot2> : public internal::MatrixLieGroup<Rot2, 2> {};
 
-  template<>
-  struct traits<const Rot2> : public internal::MatrixLieGroup<Rot2> {};
+template <>
+struct traits<const Rot2> : public internal::MatrixLieGroup<Rot2, 2> {};
 
 } // gtsam
