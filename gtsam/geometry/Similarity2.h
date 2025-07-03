@@ -9,11 +9,11 @@
 
  * -------------------------------------------------------------------------- */
 
- /**
-  * @file   Similarity2.h
-  * @brief  Implementation of Similarity2 transform
-  * @author John Lambert, Varun Agrawal
-  */
+/**
+ * @file   Similarity2.h
+ * @brief  Implementation of Similarity2 transform
+ * @author John Lambert, Varun Agrawal
+ */
 
 #pragma once
 
@@ -25,200 +25,200 @@
 
 namespace gtsam {
 
-  // Forward declarations
-  class Pose2;
+// Forward declarations
+class Pose2;
+
+/**
+ * 2D similarity transform
+ */
+class GTSAM_EXPORT Similarity2 : public MatrixLieGroup<Similarity2, 4, 3> {
+  /// @name Pose Concept
+  /// @{
+  typedef Rot2 Rotation;
+  typedef Point2 Translation;
+  /// @}
+
+private:
+  Rot2 R_;
+  Point2 t_;
+  double s_;
+
+public:
+  /// @name Constructors
+  /// @{
+
+  /// Default constructor
+  Similarity2();
+
+  /// Construct pure scaling
+  Similarity2(double s);
+
+  /// Construct from GTSAM types
+  Similarity2(const Rot2& R, const Point2& t, double s);
+
+  /// Construct from Eigen types
+  Similarity2(const Matrix2& R, const Vector2& t, double s);
+
+  /// Construct from matrix [R t; 0 s^-1]
+  Similarity2(const Matrix3& T);
+
+  /// @}
+  /// @name Testable
+  /// @{
+
+  /// Compare with tolerance
+  bool equals(const Similarity2& sim, double tol) const;
+
+  /// Exact equality
+  bool operator==(const Similarity2& other) const;
+
+  /// Print with optional string
+  void print(const std::string& s = "") const;
+
+  GTSAM_EXPORT friend std::ostream& operator<<(std::ostream& os,
+                                               const Similarity2& p);
+
+  /// @}
+  /// @name Group
+  /// @{
+
+  /// Return an identity transform
+  static Similarity2 Identity();
+
+  /// Composition
+  Similarity2 operator*(const Similarity2& S) const;
+
+  /// Return the inverse
+  Similarity2 inverse() const;
+
+  /// @}
+  /// @name Group action on Point2
+  /// @{
+
+  /// Action on a point p is s*(R*p+t)
+  Point2 transformFrom(const Point2& p) const;
 
   /**
-   * 2D similarity transform
+   * Action on a pose T.
+   * |Rs  ts|   |R t|   |Rs*R Rs*t+ts|
+   * |0  1/s| * |0 1| = | 0      1/s |, the result is still a Sim2 object.
+   * To retrieve a Pose2, we normalized the scale value into 1.
+   * |Rs*R Rs*t+ts|   |Rs*R s(Rs*t+ts)|
+   * | 0      1/s | = |  0       1    |
+   *
+   * This group action satisfies the compatibility condition.
+   * For more details, refer to: https://en.wikipedia.org/wiki/Group_action
    */
-  class GTSAM_EXPORT Similarity2 : public MatrixLieGroup<Similarity2, 4, 3> {
-    /// @name Pose Concept
-    /// @{
-    typedef Rot2 Rotation;
-    typedef Point2 Translation;
-    /// @}
+  Pose2 transformFrom(const Pose2& T) const;
 
-  private:
-    Rot2 R_;
-    Point2 t_;
-    double s_;
+  /* syntactic sugar for transformFrom */
+  Point2 operator*(const Point2& p) const;
 
-  public:
-    /// @name Constructors
-    /// @{
+  /**
+   *  Create Similarity2 by aligning at least two point pairs
+   */
+  static Similarity2 Align(const Point2Pairs& abPointPairs);
 
-    /// Default constructor
-    Similarity2();
+  /**
+   * Create the Similarity2 object that aligns at least two pose pairs.
+   * Each pair is of the form (aTi, bTi).
+   * Given a list of pairs in frame a, and a list of pairs in frame b,
+   Align()
+   * will compute the best-fit Similarity2 aSb transformation to align them.
+   * First, the rotation aRb will be computed as the average (Karcher mean)
+   of
+   * many estimates aRb (from each pair). Afterwards, the scale factor will
+   be computed
+   * using the algorithm described here:
+   * http://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2005/Zinsser05-PSR.pdf
+   */
+  static Similarity2 Align(const Pose2Pairs& abPosePairs);
 
-    /// Construct pure scaling
-    Similarity2(double s);
+  /// @}
+  /// @name Lie Group
+  /// @{
 
-    /// Construct from GTSAM types
-    Similarity2(const Rot2& R, const Point2& t, double s);
+  using LieAlgebra = Matrix3;
 
-    /// Construct from Eigen types
-    Similarity2(const Matrix2& R, const Vector2& t, double s);
+  /// Calculate expmap and logmap coefficients.
+  static Matrix2 GetV(double theta, double lambda);
 
-    /// Construct from matrix [R t; 0 s^-1]
-    Similarity2(const Matrix3& T);
+  /**
+   * Log map at the identity
+   * \f$ [t_x, t_y, \delta, \lambda] \f$
+   */
+  static Vector4 Logmap(const Similarity2& S,  //
+                        OptionalJacobian<4, 4> Hm = {});
 
-    /// @}
-    /// @name Testable
-    /// @{
+  /// Exponential map at the identity
+  static Similarity2 Expmap(const Vector4& v,  //
+                            OptionalJacobian<4, 4> Hm = {});
 
-    /// Compare with tolerance
-    bool equals(const Similarity2& sim, double tol) const;
+  /// Chart at the origin
+  struct ChartAtOrigin {
+    static Similarity2 Retract(const Vector4& v,
+                               ChartJacobian H = {}) {
+      return Similarity2::Expmap(v, H);
+    }
+    static Vector4 Local(const Similarity2& other,
+                         ChartJacobian H = {}) {
+      return Similarity2::Logmap(other, H);
+    }
+  };
 
-    /// Exact equality
-    bool operator==(const Similarity2& other) const;
+  /// Project from one tangent space to another
+  Matrix4 AdjointMap() const;
 
-    /// Print with optional string
-    void print(const std::string& s = "") const;
+  using LieGroup<Similarity2, 4>::inverse;
 
-    GTSAM_EXPORT friend std::ostream& operator<<(std::ostream& os,
-      const Similarity2& p);
+  /// Hat maps from tangent vector to Lie algebra
+  static Matrix3 Hat(const Vector4& xi);
 
-    /// @}
-    /// @name Group
-    /// @{
+  /// Vee maps from Lie algebra to tangent vector
+  static Vector4 Vee(const Matrix3& X);
 
-    /// Return an identity transform
-    static Similarity2 Identity();
+  /// @}
+  /// @name Standard interface
+  /// @{
 
-    /// Composition
-    Similarity2 operator*(const Similarity2& S) const;
+  /// Calculate 3*3 matrix group equivalent
+  Matrix3 matrix() const;
 
-    /// Return the inverse
-    Similarity2 inverse() const;
+  /// Return a GTSAM rotation
+  Rot2 rotation() const { return R_; }
 
-    /// @}
-    /// @name Group action on Point2
-    /// @{
+  /// Return a GTSAM translation
+  Point2 translation() const { return t_; }
 
-    /// Action on a point p is s*(R*p+t)
-    Point2 transformFrom(const Point2& p) const;
+  /// Return the scale
+  double scale() const { return s_; }
 
-    /**
-     * Action on a pose T.
-     * |Rs  ts|   |R t|   |Rs*R Rs*t+ts|
-     * |0  1/s| * |0 1| = | 0      1/s |, the result is still a Sim2 object.
-     * To retrieve a Pose2, we normalized the scale value into 1.
-     * |Rs*R Rs*t+ts|   |Rs*R s(Rs*t+ts)|
-     * | 0      1/s | = |  0       1    |
-     *
-     * This group action satisfies the compatibility condition.
-     * For more details, refer to: https://en.wikipedia.org/wiki/Group_action
-     */
-    Pose2 transformFrom(const Pose2& T) const;
+  /// Dimensionality of tangent space = 4 DOF - used to autodetect sizes
+  inline static size_t Dim() { return 4; }
 
-    /* syntactic sugar for transformFrom */
-    Point2 operator*(const Point2& p) const;
+  /// Dimensionality of tangent space = 4 DOF
+  inline size_t dim() const { return 4; }
 
-    /**
-     *  Create Similarity2 by aligning at least two point pairs
-     */
-    static Similarity2 Align(const Point2Pairs& abPointPairs);
+ private:
 
-    /**
-     * Create the Similarity2 object that aligns at least two pose pairs.
-     * Each pair is of the form (aTi, bTi).
-     * Given a list of pairs in frame a, and a list of pairs in frame b,
-     Align()
-     * will compute the best-fit Similarity2 aSb transformation to align them.
-     * First, the rotation aRb will be computed as the average (Karcher mean)
-     of
-     * many estimates aRb (from each pair). Afterwards, the scale factor will
-     be computed
-     * using the algorithm described here:
-     * http://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2005/Zinsser05-PSR.pdf
-     */
-    static Similarity2 Align(const Pose2Pairs& abPosePairs);
-
-    /// @}
-    /// @name Lie Group
-    /// @{
-
-    using LieAlgebra = Matrix3;
-
-    /// Calculate expmap and logmap coefficients.
-    static Matrix2 GetV(double theta, double lambda);
-
-    /**
-     * Log map at the identity
-     * \f$ [t_x, t_y, \delta, \lambda] \f$
-     */
-    static Vector4 Logmap(const Similarity2& S,  //
-      OptionalJacobian<4, 4> Hm = {});
-
-    /// Exponential map at the identity
-    static Similarity2 Expmap(const Vector4& v,  //
-      OptionalJacobian<4, 4> Hm = {});
-
-    /// Chart at the origin
-    struct ChartAtOrigin {
-      static Similarity2 Retract(const Vector4& v,
-        ChartJacobian H = {}) {
-        return Similarity2::Expmap(v, H);
-      }
-      static Vector4 Local(const Similarity2& other,
-        ChartJacobian H = {}) {
-        return Similarity2::Logmap(other, H);
-      }
-    };
-
-    /// Project from one tangent space to another
-    Matrix4 AdjointMap() const;
-
-    using LieGroup<Similarity2, 4>::inverse;
-
-    /// Hat maps from tangent vector to Lie algebra
-    static Matrix3 Hat(const Vector4& xi);
-
-    /// Vee maps from Lie algebra to tangent vector
-    static Vector4 Vee(const Matrix3& X);
-
-    /// @}
-    /// @name Standard interface
-    /// @{
-
-    /// Calculate 3*3 matrix group equivalent
-    Matrix3 matrix() const;
-
-    /// Return a GTSAM rotation
-    Rot2 rotation() const { return R_; }
-
-    /// Return a GTSAM translation
-    Point2 translation() const { return t_; }
-
-    /// Return the scale
-    double scale() const { return s_; }
-
-    /// Dimensionality of tangent space = 4 DOF - used to autodetect sizes
-    inline static size_t Dim() { return 4; }
-
-    /// Dimensionality of tangent space = 4 DOF
-    inline size_t dim() const { return 4; }
-
-  private:
-
-#if GTSAM_ENABLE_BOOST_SERIALIZATION
+  #if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template<class Archive>
-    void serialize(Archive& ar, const unsigned int /*version*/) {
-      ar& BOOST_SERIALIZATION_NVP(R_);
-      ar& BOOST_SERIALIZATION_NVP(t_);
-      ar& BOOST_SERIALIZATION_NVP(s_);
+    void serialize(Archive & ar, const unsigned int /*version*/) {
+      ar & BOOST_SERIALIZATION_NVP(R_);
+      ar & BOOST_SERIALIZATION_NVP(t_);
+      ar & BOOST_SERIALIZATION_NVP(s_);
     }
-#endif
+  #endif
 
-    /// @}
-  };
+  /// @}
+};
 
-  template <>
-  struct traits<Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
+template <>
+struct traits<Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
 
-  template <>
-  struct traits<const Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
+template <>
+struct traits<const Similarity2> : public internal::MatrixLieGroup<Similarity2> {};
 
 }  // namespace gtsam
