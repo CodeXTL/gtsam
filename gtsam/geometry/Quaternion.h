@@ -152,6 +152,10 @@ struct traits<QUATERNION_TYPE> {
     return SO3::Vee(X);
   }
 
+  static Vector9 Vec(const Q& q, OptionalJacobian<9, 3> H = {}) {
+    return SO3(q.toRotationMatrix()).SO3::vec(H);
+  }
+
   /// @}
   /// @name Manifold traits
   /// @{
