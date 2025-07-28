@@ -5,9 +5,11 @@ from gtsam import Values, NonlinearFactorGraph, LevenbergMarquardtOptimizer, noi
 # Import your custom SL4 class and bindings (assumed already wrapped)
 from gtsam import SL4, PriorFactorSL4, BetweenFactorSL4
 
+
 def main():
     # Random noise generator
     rng = np.random.default_rng(seed=42)
+
     def random_noise_vector(dim=15):
         return rng.uniform(low=-0.1, high=0.1, size=dim)
 
@@ -24,33 +26,41 @@ def main():
     model = noiseModel.Diagonal.Sigmas(model_sigmas)
 
     # Define SL4 transformations (homography matrices)
-    H12 = np.array([
-        [1.0, 0.1, 0.0, 2.0],
-        [0.0, 1.0, 0.0, 3.0],
-        [0.0, 0.0, 1.0, 5.0],
-        [0.001, 0.002, 0.0, 1.0]
-    ])
+    H12 = np.array(
+        [
+            [1.0, 0.1, 0.0, 2.0],
+            [0.0, 1.0, 0.0, 3.0],
+            [0.0, 0.0, 1.0, 5.0],
+            [0.001, 0.002, 0.0, 1.0],
+        ]
+    )
 
-    H23 = np.array([
-        [0.9, 0.2, 0.0, 1.5],
-        [0.1, 1.1, 0.0, -2.0],
-        [0.0, 0.0, 0.8, 4.0],
-        [0.002, 0.003, 0.0005, 1.0]
-    ])
+    H23 = np.array(
+        [
+            [0.9, 0.2, 0.0, 1.5],
+            [0.1, 1.1, 0.0, -2.0],
+            [0.0, 0.0, 0.8, 4.0],
+            [0.002, 0.003, 0.0005, 1.0],
+        ]
+    )
 
-    H34 = np.array([
-        [1.05, -0.1, 0.0, 3.0],
-        [0.2, 0.95, 0.0, 1.0],
-        [0.0, 0.0, 0.9, 2.5],
-        [0.0015, -0.001, 0.0003, 1.0]
-    ])
+    H34 = np.array(
+        [
+            [1.05, -0.1, 0.0, 3.0],
+            [0.2, 0.95, 0.0, 1.0],
+            [0.0, 0.0, 0.9, 2.5],
+            [0.0015, -0.001, 0.0003, 1.0],
+        ]
+    )
 
-    H45 = np.array([
-        [0.98, 0.05, 0.0, -1.0],
-        [-0.05, 1.02, 0.0, 2.0],
-        [0.0, 0.0, 1.1, 0.5],
-        [0.0008, 0.0015, -0.0002, 1.0]
-    ])
+    H45 = np.array(
+        [
+            [0.98, 0.05, 0.0, -1.0],
+            [-0.05, 1.02, 0.0, 2.0],
+            [0.0, 0.0, 1.1, 0.5],
+            [0.0008, 0.0015, -0.0002, 1.0],
+        ]
+    )
 
     H52 = np.linalg.inv(H23 @ H34 @ H45)
 
@@ -110,6 +120,7 @@ def main():
         if not gt_pose.equals(opt_pose, 1e-5):
             print(f"\033[1;31mPose {i} is outside tolerance!")
     print("\033[1;32mSuccessfully optimized!\033[0m")
+
 
 if __name__ == "__main__":
     main()
