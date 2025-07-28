@@ -86,13 +86,28 @@ Ordering HybridSmoother::maybeComputeOrdering(
 }
 
 /* ************************************************************************* */
-void HybridSmoother::removeFixedValues(
+HybridGaussianFactorGraph HybridSmoother::removeFixedValues(
+    const HybridGaussianFactorGraph &graph,
     const HybridGaussianFactorGraph &newFactors) {
-  for (Key key : newFactors.discreteKeySet()) {
+  // Initialize graph
+  HybridGaussianFactorGraph updatedGraph(graph);
+
+  for (DiscreteKey dkey : newFactors.discreteKeys()) {
+    Key key = dkey.first;
     if (fixedValues_.find(key) != fixedValues_.end()) {
+      // Add corresponding discrete factor to reintroduce the information
+      std::vector<double> probabilities(
+          dkey.second, (1 - *marginalThreshold_) / dkey.second);
+      probabilities[fixedValues_[key]] = *marginalThreshold_;
+      DiscreteConditional dc(dkey, DiscreteKeys{}, probabilities);
+      updatedGraph.push_back(dc);
+
+      // Remove fixed value
       fixedValues_.erase(key);
     }
   }
+
+  return updatedGraph;
 }
 
 /* ************************************************************************* */
@@ -126,6 +141,11 @@ void HybridSmoother::update(const HybridNonlinearFactorGraph &newFactors,
             << std::endl;
 #endif
 
+  if (marginalThreshold_) {
+    // Remove fixed values for discrete keys which are introduced in newFactors
+    updatedGraph = removeFixedValues(updatedGraph, newFactors);
+  }
+
   Ordering ordering = this->maybeComputeOrdering(updatedGraph, given_ordering);
 
 #if GTSAM_HYBRID_TIMING
@@ -145,9 +165,6 @@ void HybridSmoother::update(const HybridNonlinearFactorGraph &newFactors,
   }
 #endif
 
-  // Remove fixed values for discrete keys which are introduced in newFactors
-  removeFixedValues(newFactors);
-
 #ifdef DEBUG_SMOOTHER
   // Print discrete keys in the bayesNetFragment:
   std::cout << "Discrete keys in bayesNetFragment: ";
@@ -166,7 +183,9 @@ void HybridSmoother::update(const HybridNonlinearFactorGraph &newFactors,
     DiscreteValues newlyFixedValues;
     bayesNetFragment = bayesNetFragment.prune(*maxNrLeaves, marginalThreshold_,
                                               &newlyFixedValues);
-    fixedValues_.insert(newlyFixedValues);
+    // Insert or assign so it updates existing fixed values
+    // instead of replacing them.
+    fixedValues_.insert_or_assign(newlyFixedValues);
 #if GTSAM_HYBRID_TIMING
     gttoc_(HybridSmootherPrune);
 #endif
