@@ -1,29 +1,5 @@
 # GTSAM: Georgia Tech Smoothing and Mapping Library
 
----
-
-## How to install SL4 supported GTSAM for [VGGT-SLAM](https://arxiv.org/abs/2505.12549)
-
-In the repository directory, within your virtual environment, please run:
-
-```
-make build && cd build
-cmake .. -DGTSAM_BUILD_PYTHON=1 -DGTSAM_FORCE_STATIC_LIB=ON && make -j$(nproc)
-pip3 install -e python/ --verbose
-```
-
-To double-check whether it works well or not, please run below example:
-
-```
-python3 python/gtsam/examples/SL4SLAMExample.py
-```
-
-It should outputs "Successfully optimized!" message with the green color!
-
----
-
-The contents of `README.md` below are from the original GTSAM. 
-
 **Important Note**
 
 **As of January 2023, the `develop` branch is officially in "Pre 4.3" mode. We envision several API-breaking changes as we switch to C++17 and away from boost.**
