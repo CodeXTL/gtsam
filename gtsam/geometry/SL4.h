@@ -6,14 +6,13 @@
 
 #pragma once
 
-#include <gtsam/config.h>
-#include <gtsam/dllexport.h>
-
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/MatrixLieGroup.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/base/Vector.h>
 #include <gtsam/base/std_optional_serialization.h>
+#include <gtsam/config.h>
+#include <gtsam/dllexport.h>
 
 #include <string>
 
@@ -104,30 +103,19 @@ class GTSAM_EXPORT SL4 : public MatrixLieGroup<SL4, 15, 4> {
   static Vector Vee(const Matrix44& X);
 
   /// @}
-  /// @name Serialization
-  /// @{
-
-  /// Serialization function
-  template <class ARCHIVE>
-  void serialize(ARCHIVE& ar, const unsigned int /*version*/) const {
-    ar& BOOST_SERIALIZATION_NVP(T_);
-  }
-
-  /// Deserialization function
-  template <class ARCHIVE>
-  void deserialize(ARCHIVE& ar) {
-    ar& BOOST_SERIALIZATION_NVP(T_);
-  }
-
-  /// @}
 
  private:
 #ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
-  // Serialization function
+  /// Serialization function
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int /*version*/) {
-    ar& BOOST_SERIALIZATION_NVP(T_);
+    for (int i = 0; i < 4; ++i) {
+      for (int j = 0; j < 4; ++j) {
+        std::string name = "T" + std::to_string(i) + std::to_string(j);
+        ar& boost::serialization::make_nvp(name.c_str(), T_(i, j));
+      }
+    }
   }
 #endif
 };  // \class SL4
