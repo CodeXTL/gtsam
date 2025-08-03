@@ -66,52 +66,43 @@ void PreintegratedAhrsMeasurements::integrateMeasurement(
 Rot3 PreintegratedAhrsMeasurements::predict(
     const Rot3& Ri, const Vector3& bias, gtsam::OptionalJacobian<3, 3> H1,
     gtsam::OptionalJacobian<3, 3> H2) const {
-  // Correct for bias.
-  Matrix3 D_biascorrected_bias;
+  // Use H2 as an in/out parameter to hold the Jacobian of the bias-corrected
+  // rotation w.r.t. the bias increment. This is an efficient C++ pattern.
   const Vector3 biasOmegaIncr = bias - biasHat_;
-  Rot3 correctedDeltaRij = biascorrectedDeltaRij(
-      biasOmegaIncr, H2 ? &D_biascorrected_bias : nullptr);
+  const Rot3 biascorrected = this->biascorrectedDeltaRij(biasOmegaIncr, H2);
 
-  // We handle the common case of no Coriolis correction first, in a
-  // fast path that can be easily optimized by the compiler.
+  // We handle the common case of no Coriolis correction first.
   if (!p().omegaCoriolis) {
-    // Predict final orientation.
-    const Rot3 predicted_Rj = Ri.compose(correctedDeltaRij, H1, H2);
-    if (H2) *H2 *= D_biascorrected_bias;
-    return predicted_Rj;
+    // ---- FAST PATH ----
+    // In this path, the Jacobian of compose wrt its second argument is
+    // identity, so H2 already holds the final Jacobian wrt bias.
+    return Ri.compose(biascorrected, H1);
+
   } else {
-    // 2. Calculate Coriolis effects.
-    const Vector3 coriolis = integrateCoriolis(Ri);
-    const Rot3 coriolisCorrection = Rot3::Expmap(-coriolis);
+    // ---- SLOW PATH ----
+    // Calculate Coriolis effects and its derivative w.r.t. Ri.
+    Matrix3 D_coriolis_Ri;
+    const Vector3 coriolis =
+        integrateCoriolis(Ri, H1 ? &D_coriolis_Ri : nullptr);
 
-    // Compose corrections to get the final relative rotation.
-    Matrix3 D_corrected_biascorrected, D_corrected_coriolis;
-    correctedDeltaRij = correctedDeltaRij.compose(
-        coriolisCorrection, H2 ? &D_corrected_biascorrected : nullptr,
-        H1 ? &D_corrected_coriolis : nullptr);
+    // Compose bias and Coriolis corrections.
+    Matrix3 D_finalDelta_biasDelta, D_finalDelta_coriolis;
+    const Rot3 finalDeltaRij =
+        biascorrected.expmap(-coriolis, H2 ? &D_finalDelta_biasDelta : nullptr,
+                             H1 ? &D_finalDelta_coriolis : nullptr);
 
-    // Predict final orientation.
-    Matrix3 D_predict_Ri, D_predict_delta;
-    const Rot3 predicted_Rj =
-        Ri.compose(correctedDeltaRij, H1 ? &D_predict_Ri : nullptr,
-                   H1 || H2 ? &D_predict_delta : nullptr);
+    // Predict final orientation, getting the direct Jacobian wrt Ri.
+    const Rot3 predicted_Rj = Ri.compose(finalDeltaRij, H1);
 
-    // Chain rule for Jacobians.
+    // Augment Jacobians with the indirect paths.
     if (H1) {
-      const Matrix3 D_coriolis_Ri =
-          skewSymmetric(Ri.transpose() * (*p().omegaCoriolis) * deltaTij_);
-      const Matrix3 D_coriolisCorrection_coriolis =
-          Rot3::ExpmapDerivative(-coriolis);
-      const Matrix3 D_corrected_Ri = D_corrected_coriolis *
-                                     D_coriolisCorrection_coriolis *
-                                     (-D_coriolis_Ri);
-
-      // Final Jacobian wrt Ri is sum of two paths.
-      *H1 = D_predict_Ri + D_predict_delta * D_corrected_Ri;
+      // Add in indirect path: Ri -> coriolis -> finalDeltaRij
+      *H1 -= D_finalDelta_coriolis * D_coriolis_Ri;
     }
 
     if (H2) {
-      *H2 = D_predict_delta * D_corrected_biascorrected * D_biascorrected_bias;
+      // Apply the chain rule for the bias Jacobian, updating H2 in-place.
+      *H2 = D_finalDelta_biasDelta * (*H2);
     }
 
     return predicted_Rj;

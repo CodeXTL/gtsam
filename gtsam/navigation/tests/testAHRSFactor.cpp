@@ -141,10 +141,10 @@ TEST(AHRSFactor, PIMPredict) {
   }
 
   // Predict
-  Rot3 rot_i;
+  Rot3 Ri;
   Rot3 expectedRot = Rot3::Ypr(20 * M_PI, 0, 0);
   // The new predict method lives on the PIM object
-  Rot3 actualRot = pim.predict(rot_i, bias);
+  Rot3 actualRot = pim.predict(Ri, bias);
   EXPECT(assert_equal(expectedRot, actualRot, 1e-6));
 }
 
@@ -398,7 +398,7 @@ TEST(AHRSFactor, ErrorWithBiasesAndSensorBodyDisplacement) {
 TEST(AHRSFactor, PIM_predict_and_Jacobians) {
   // --- Setup ---
   Vector3 bias(0.1, -0.1, 0.2);
-  Rot3 rot_i = Rot3::Roll(M_PI / 4.0);
+  Rot3 Ri = Rot3::Roll(M_PI / 4.0);
   auto p = std::make_shared<PreintegratedAhrsMeasurements::Params>();
   p->gyroscopeCovariance = kMeasuredOmegaCovariance;
 
@@ -412,12 +412,12 @@ TEST(AHRSFactor, PIM_predict_and_Jacobians) {
 
   // --- Test Prediction Value ---
   // Call the new predict method without requesting Jacobians
-  Rot3 predictedRot = pim.predict(rot_i, bias, {}, {});
+  Rot3 predictedRot = pim.predict(Ri, bias, {}, {});
 
   // Calculate expected value manually for verification
   Vector3 biasOmegaIncr = bias - pim.biasHat();
   Rot3 expected_biascorrected_delta = pim.biascorrectedDeltaRij(biasOmegaIncr);
-  Rot3 expectedRot = rot_i.compose(expected_biascorrected_delta);
+  Rot3 expectedRot = Ri.compose(expected_biascorrected_delta);
   EXPECT(assert_equal(expectedRot, predictedRot, 1e-6));
 
   // --- Test Jacobians ---
@@ -427,11 +427,11 @@ TEST(AHRSFactor, PIM_predict_and_Jacobians) {
 
   // Get analytical Jacobians from the predict call
   Matrix3 H1_actual, H2_actual;
-  (void)pim.predict(rot_i, bias, H1_actual, H2_actual);
+  (void)pim.predict(Ri, bias, H1_actual, H2_actual);
 
   // Get numerical Jacobians
-  Matrix3 H1_numerical = numericalDerivative21(f, rot_i, bias);
-  Matrix3 H2_numerical = numericalDerivative22(f, rot_i, bias);
+  Matrix3 H1_numerical = numericalDerivative21(f, Ri, bias);
+  Matrix3 H2_numerical = numericalDerivative22(f, Ri, bias);
 
   // Compare analytical and numerical Jacobians
   EXPECT(assert_equal(H1_numerical, H1_actual, 1e-7));
@@ -443,7 +443,7 @@ TEST(AHRSFactor, PIM_predict_and_Jacobians) {
 TEST(AHRSFactor, PIM_predict_and_Jacobians_with_Coriolis) {
   // --- Setup ---
   Vector3 bias(0.1, -0.1, 0.2);
-  Rot3 rot_i = Rot3::Roll(M_PI / 4.0);
+  Rot3 Ri = Rot3::Roll(M_PI / 4.0);
   Vector3 omegaCoriolis(0.1, 0.05, 0.2);
 
   auto p = std::make_shared<PreintegratedAhrsMeasurements::Params>();
@@ -464,11 +464,11 @@ TEST(AHRSFactor, PIM_predict_and_Jacobians_with_Coriolis) {
 
   // Get analytical Jacobians from the predict call
   Matrix3 H1_actual, H2_actual;
-  (void)pim.predict(rot_i, bias, H1_actual, H2_actual);
+  (void)pim.predict(Ri, bias, H1_actual, H2_actual);
 
   // Get numerical Jacobians
-  Matrix3 H1_numerical = numericalDerivative21(f, rot_i, bias);
-  Matrix3 H2_numerical = numericalDerivative22(f, rot_i, bias);
+  Matrix3 H1_numerical = numericalDerivative21(f, Ri, bias);
+  Matrix3 H2_numerical = numericalDerivative22(f, Ri, bias);
 
   // Compare analytical and numerical Jacobians
   EXPECT(assert_equal(H1_numerical, H1_actual, 1e-7));
