@@ -110,7 +110,7 @@ Rot3 PreintegratedAhrsMeasurements::predict(
 }
 
 //------------------------------------------------------------------------------
-Vector PreintegratedAhrsMeasurements::computeError(
+Vector3 PreintegratedAhrsMeasurements::computeError(
     const Rot3& Ri, const Rot3& Rj, const Vector3& bias,
     gtsam::OptionalJacobian<3, 3> H1, gtsam::OptionalJacobian<3, 3> H2,
     gtsam::OptionalJacobian<3, 3> H3) const {
@@ -188,11 +188,11 @@ Vector AHRSFactor::evaluateError(const Rot3& Ri, const Rot3& Rj,
 }
 
 //------------------------------------------------------------------------------
-AHRSFactor::AHRSFactor(Key Ri, Key rot_j, Key bias,
+AHRSFactor::AHRSFactor(Key rot_i, Key rot_j, Key bias,
                        const PreintegratedAhrsMeasurements& pim,
                        const Vector3& omegaCoriolis,
                        const std::optional<Pose3>& body_P_sensor)
-    : Base(noiseModel::Gaussian::Covariance(pim.preintMeasCov_), Ri, rot_j,
+    : Base(noiseModel::Gaussian::Covariance(pim.preintMeasCov_), rot_i, rot_j,
            bias),
       _PIM_(pim) {
   auto p = std::make_shared<PreintegratedAhrsMeasurements::Params>(pim.p());

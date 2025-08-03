@@ -123,10 +123,10 @@ class GTSAM_EXPORT PreintegratedAhrsMeasurements
    * @param H3 Optional Jacobian of the error with respect to bias
    * @return A 3D vector containing the rotation error.
    */
-  Vector computeError(const Rot3& Ri, const Rot3& Rj, const Vector3& bias,
-                      gtsam::OptionalJacobian<3, 3> H1 = {},
-                      gtsam::OptionalJacobian<3, 3> H2 = {},
-                      gtsam::OptionalJacobian<3, 3> H3 = {}) const;
+  Vector3 computeError(const Rot3& Ri, const Rot3& Rj, const Vector3& bias,
+                       gtsam::OptionalJacobian<3, 3> H1 = {},
+                       gtsam::OptionalJacobian<3, 3> H2 = {},
+                       gtsam::OptionalJacobian<3, 3> H3 = {}) const;
 
   // This function is only used for test purposes
   // (compare numerical derivatives wrt analytic ones)
@@ -209,7 +209,8 @@ class GTSAM_EXPORT AHRSFactor : public NoiseModelFactorN<Rot3, Rot3, Vector3> {
                        OptionalMatrixType H3) const override;
 
   /// @deprecated constructor, but used in tests.
-  AHRSFactor(Key Ri, Key Rj, Key bias, const PreintegratedAhrsMeasurements& pim,
+  AHRSFactor(Key rot_i, Key rot_j, Key bias,
+             const PreintegratedAhrsMeasurements& pim,
              const Vector3& omegaCoriolis,
              const std::optional<Pose3>& body_P_sensor = {});
 
