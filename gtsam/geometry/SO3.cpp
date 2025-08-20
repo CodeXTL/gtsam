@@ -128,95 +128,63 @@ DexpFunctor::DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, doubl
       // General case D:
       D = (1.0 - A / (2.0 * B)) / theta2;
     }
-    // Calculate E and F using standard formulas (stable near pi)
-    E = (2.0 * B - A) / theta2;
-    F = (3.0 * C - B) / theta2;
   } else {
     // Taylor expansion at 0
     // TODO(Frank): flipping signs here does not trigger any tests: harden!
     C = one_6th - theta2 * one_120th;
     D = one_12th + theta2 * one_720th;
-    E = one_12th - theta2 * one_180th;
-    F = one_60th - theta2 * one_1260th;
   }
 }
+
+double DexpFunctor::dB() const {
+  if (std::isnan(dB_)) {
+    dB_ =
+        !nearZero ? ((A - 2.0 * B) / theta2) : (-one_12th + theta2 * one_180th);
+  }
+  return dB_;
+}
+
+double DexpFunctor::dC() const {
+  if (std::isnan(dC_)) {
+    dC_ = !nearZero ? ((B - 3.0 * C) / theta2)
+                    : (-one_60th + theta2 * one_1260th);
+  }
+  return dC_;
+}
+
+Kernel DexpFunctor::Jacobian() const& { return Kernel{this, 1.0, B, C, dB(), dC()}; }
+InvJKernel DexpFunctor::InvJacobian() const& { return InvJKernel{this, Jacobian()}; }
 
 DexpFunctor::DexpFunctor(const Vector3& omega)
-  : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
+    : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
 
+Matrix3 DexpFunctor::rightJacobian() const { return Jacobian().right(); }
+Matrix3 DexpFunctor::leftJacobian() const { return Jacobian().left(); }
 Matrix3 DexpFunctor::rightJacobianInverse() const {
-  if (theta > M_PI) return rightJacobian().inverse();
-  return I_3x3 + 0.5 * W + D * WW;
+  return InvJacobian().right();
 }
-
 Matrix3 DexpFunctor::leftJacobianInverse() const {
-  if (theta > M_PI) return leftJacobian().inverse();
-  return I_3x3 - 0.5 * W + D * WW;
+  return InvJacobian().left();
 }
-
-// Multiplies v with left Jacobian through vector operations only.
-Vector3 DexpFunctor::applyRightJacobian(const Vector3& v, OptionalJacobian<3, 3> H1,
-  OptionalJacobian<3, 3> H2) const {
-  const Vector3 Wv = gtsam::cross(omega, v);
-
-  Matrix3 WWv_H_w;
-  const Vector3 WWv = gtsam::doubleCross(omega, v, H1 ? &WWv_H_w : nullptr);
-
-  if (H1) {
-    // - E * omega.transpose() is 1x3 Jacobian of B with respect to omega
-    Matrix3 BWv_H_w = -Wv * E * omega.transpose() - B * skewSymmetric(v);
-    // - F * omega.transpose() is 1x3 Jacobian of C with respect to omega
-    Matrix3 CWWv_H_w = -WWv * F * omega.transpose() + C * WWv_H_w;
-    *H1 = -BWv_H_w + CWWv_H_w;
-  }
-
-  if (H2) *H2 = rightJacobian();
-  return v - B * Wv + C * WWv;
+Vector3 DexpFunctor::applyRightJacobian(const Vector3& v,
+                                        OptionalJacobian<3, 3> H1,
+                                        OptionalJacobian<3, 3> H2) const {
+  return Jacobian().applyRight(v, H1, H2);
 }
-
-Vector3 DexpFunctor::applyRightJacobianInverse(const Vector3& v, OptionalJacobian<3, 3> H1,
-  OptionalJacobian<3, 3> H2) const {
-  const Matrix3 invJr = rightJacobianInverse();
-  const Vector3 c = invJr * v;
-  if (H1) {
-    Matrix3 H;
-    applyRightJacobian(c, H);  // get derivative H of forward mapping
-    *H1 = -invJr * H;
-  }
-  if (H2) *H2 = invJr;
-  return c;
-}
-
 Vector3 DexpFunctor::applyLeftJacobian(const Vector3& v,
-  OptionalJacobian<3, 3> H1, OptionalJacobian<3, 3> H2) const {
-  const Vector3 Wv = gtsam::cross(omega, v);
-
-  Matrix3 WWv_H_w;
-  const Vector3 WWv = gtsam::doubleCross(omega, v, H1 ? &WWv_H_w : nullptr);
-
-  if (H1) {
-    // - E * omega.transpose() is 1x3 Jacobian of B with respect to omega
-    Matrix3 BWv_H_w = -Wv * E * omega.transpose() - B * skewSymmetric(v);
-    // - F * omega.transpose() is 1x3 Jacobian of C with respect to omega
-    Matrix3 CWWv_H_w = -WWv * F * omega.transpose() + C * WWv_H_w;
-    *H1 = BWv_H_w + CWWv_H_w;
-  }
-
-  if (H2) *H2 = leftJacobian();
-  return v + B * Wv + C * WWv;
+                                       OptionalJacobian<3, 3> H1,
+                                       OptionalJacobian<3, 3> H2) const {
+  return Jacobian().applyLeft(v, H1, H2);
 }
-
+Vector3 DexpFunctor::applyRightJacobianInverse(
+    const Vector3& v, OptionalJacobian<3, 3> H1,
+    OptionalJacobian<3, 3> H2) const {
+  return InvJacobian().applyRight(v, H1, H2);
+}
 Vector3 DexpFunctor::applyLeftJacobianInverse(const Vector3& v,
-  OptionalJacobian<3, 3> H1, OptionalJacobian<3, 3> H2) const {
-  const Matrix3 invJl = leftJacobianInverse();
-  const Vector3 c = invJl * v;
-  if (H1) {
-    Matrix3 H;
-    applyLeftJacobian(c, H);  // get derivative H of forward mapping
-    *H1 = -invJl * H;
-  }
-  if (H2) *H2 = invJl;
-  return c;
+                                              OptionalJacobian<3, 3> H1,
+                                              OptionalJacobian<3, 3> H2) const {
+  return InvJacobian().applyLeft(v, H1, H2);
 }
 
 }  // namespace so3

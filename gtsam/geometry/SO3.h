@@ -20,11 +20,11 @@
 
 #pragma once
 
-#include <gtsam/geometry/SOn.h>
-
 #include <gtsam/base/Lie.h>
 #include <gtsam/base/Matrix.h>
 #include <gtsam/dllexport.h>
+#include <gtsam/geometry/Kernel.h>
+#include <gtsam/geometry/SOn.h>
 
 #include <vector>
 
@@ -171,15 +171,17 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   // Constant used in inverse Jacobians
   double D;  // (1 - A/2B) / theta2
 
-  // Constants used in cross and doubleCross
-  double E;  // (2B - A) / theta2
-  double F;  // (3C - B) / theta2
-
   /// Constructor with element of Lie algebra so(3)
   explicit DexpFunctor(const Vector3& omega);
 
   /// Constructor with custom thresholds (advanced)
   explicit DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, double nearPiThresholdSq);
+
+  // Jacobian kernel J_[l/r](ω) = I +/0 B Ω + C Ω²  (left/right).
+  Kernel Jacobian() const&;
+
+  // Specialized kernel for inverse Jacobian, stable even for |ω| > π
+  InvJKernel InvJacobian() const&;  // I +/- 1/2 Ω + D Ω²
 
   // NOTE(luca): Right Jacobian for Exponential map in SO(3) - equation
   // (10.86) and following equations in G.S. Chirikjian, "Stochastic Models,
@@ -187,10 +189,10 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   //   Expmap(xi + dxi) \approx Expmap(xi) * Expmap(dexp * dxi)
   // This maps a perturbation dxi=(w,v) in the tangent space to
   // a perturbation on the manifold Expmap(dexp * xi)
-  Matrix3 rightJacobian() const { return I_3x3 - B * W + C * WW; }
+  Matrix3 rightJacobian() const;
 
   // Compute the left Jacobian for Exponential map in SO(3)
-  Matrix3 leftJacobian() const { return I_3x3 + B * W + C * WW; }
+  Matrix3 leftJacobian() const;
 
   /// Inverse of right Jacobian
   /// For |omega|>pi uses rightJacobian().inverse(), as unstable beyond pi!
@@ -223,6 +225,15 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   /// @deprecated: use rightJacobianInverse
   inline Matrix3 invDexp() const { return rightJacobianInverse(); }
 #endif
+
+  // access to (lazily evaluated) radial derivatives c'(θ)/θ
+  double dB() const;
+  double dC() const;
+
+ protected:
+  // Constants used for Jacobian kernel
+  static constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
+  mutable double dB_{kNan}, dC_{kNan};  ///< lazy c(θ)′/θ
 };
 }  //  namespace so3
 
