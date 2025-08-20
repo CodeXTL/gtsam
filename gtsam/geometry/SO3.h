@@ -127,17 +127,18 @@ GTSAM_EXPORT Matrix3 compose(const Matrix3& M, const SO3& R,
 /// (constant) Jacobian of compose wrpt M
 GTSAM_EXPORT Matrix99 Dcompose(const SO3& R);
 
-// Below are two functors that allow for saving computation when exponential map
-// and its derivatives are needed at the same location in so<3>. The second
-// functor also implements dedicated methods to apply dexp and/or inv(dexp).
-
-/// Functor implementing Exponential map
-/// Math is based on Ethan Eade's elegant Lie group document, at
-/// https://www.ethaneade.org/lie.pdf.
+/**
+ * Opaque evaluation context at ω: caches Ω, Ω², θ, θ², nearZero/nearPi,
+ * Lazily computes C, D, E, dA, dB, dC, dE on demand.
+ * Math is based on Ethan Eade's elegant Lie group document, at
+ * https://www.ethaneade.org/lie.pdf, and the Kernel idea in doc/Jacobians.md
+ */
 struct GTSAM_EXPORT ExpmapFunctor {
-  const double theta2, theta;
-  const Matrix3 W, WW;
-  bool nearZero{ false };
+  double theta2;  ///< The squared norm of the rotation vector (θ²).
+  double theta;   ///< The norm of the rotation vector (θ).
+  Matrix3 W;      ///< The skew-symmetric matrix Ω for the rotation vector.
+  Matrix3 WW;     ///< The square of the skew-symmetric matrix (Ω²).
+  bool nearZero{false};  ///< Flag indicating if theta is near zero.
 
   // Ethan Eade's constants:
   double A;  // A = sin(theta) / theta
@@ -163,8 +164,8 @@ protected:
 /// Math extends Ethan theme of elegant I + aW + bWW expressions.
 /// See https://www.ethaneade.org/lie.pdf expmap (82) and left Jacobian (83).
 struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
-  const Vector3 omega;
-  bool nearPi{ false };
+  const Vector3 omega;  ///< The rotation vector.
+  bool nearPi{false};   ///< Flag indicating if theta is near pi.
 
   /// Constructor with element of Lie algebra so(3)
   explicit DexpFunctor(const Vector3& omega);
@@ -184,10 +185,7 @@ struct GTSAM_EXPORT DexpFunctor : public ExpmapFunctor {
   // Gamma kernel: Γ_[l/r](ω) = 0.5 I ± C Ω + E Ω² (left/right).
   Kernel Gamma() const&;
 
-  // NOTE(luca): Right Jacobian for Exponential map in SO(3) - equation
-  // (10.86) and following equations in G.S. Chirikjian, "Stochastic Models,
-  // Information Theory, and Lie Groups", Volume 2, 2008.
-  //   Expmap(xi + dxi) \approx Expmap(xi) * Expmap(dexp * dxi)
+  // NOTE(luca): Right Jacobian for Exponential map in SO(3)
   // This maps a perturbation dxi=(w,v) in the tangent space to
   // a perturbation on the manifold Expmap(dexp * xi)
   Matrix3 rightJacobian() const;

@@ -120,6 +120,9 @@ DexpFunctor::DexpFunctor(const Vector3& omega, double nearZeroThresholdSq, doubl
   nearPi = (delta2 < nearPiThresholdSq);
 }
 
+DexpFunctor::DexpFunctor(const Vector3& omega)
+    : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
+
 double DexpFunctor::C() const {
   if (std::isnan(C_)) {
     // Usually stable, even near pi (1-0)/pi^2
@@ -182,17 +185,18 @@ Kernel DexpFunctor::Jacobian() const& { return Kernel{this, 1.0, B, C(), dB(), d
 InvJKernel DexpFunctor::InvJacobian() const& { return InvJKernel{this, Jacobian()}; }
 Kernel DexpFunctor::Gamma() const& { return Kernel{this, 0.5, C(), E(), dC(), dE()}; }
 
-DexpFunctor::DexpFunctor(const Vector3& omega)
-    : DexpFunctor(omega, kNearZeroThresholdSq, kNearPiThresholdSq) {}
+// --- If you only need Jacobians, not apply ---
+Matrix3 DexpFunctor::rightJacobian() const { return I_3x3 - B * W + C() * WW; }
+Matrix3 DexpFunctor::leftJacobian() const { return I_3x3 + B * W + C() * WW; }
 
-Matrix3 DexpFunctor::rightJacobian() const { return Jacobian().right(); }
-Matrix3 DexpFunctor::leftJacobian() const { return Jacobian().left(); }
+// --- Old Functions ---
 Matrix3 DexpFunctor::rightJacobianInverse() const {
   return InvJacobian().right();
 }
 Matrix3 DexpFunctor::leftJacobianInverse() const {
   return InvJacobian().left();
 }
+
 Vector3 DexpFunctor::applyRightJacobian(const Vector3& v,
                                         OptionalJacobian<3, 3> H1,
                                         OptionalJacobian<3, 3> H2) const {

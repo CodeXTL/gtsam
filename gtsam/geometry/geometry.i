@@ -220,6 +220,7 @@ namespace so3 {
     const gtsam::Vector3 omega;
     const double C();  // (1 - A) / theta^2
     const double D();  // (1 - A/2B) / theta2
+    const double E();  // Coefficient for Gamma kernel
     DexpFunctor(const gtsam::Vector3& omega);
     DexpFunctor(const gtsam::Vector3& omega, double nearZeroThresholdSq, double nearPiThresholdSq);
     gtsam::Matrix3 rightJacobian() const;
