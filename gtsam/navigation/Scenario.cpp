@@ -17,7 +17,6 @@
 
 #include <gtsam/navigation/Scenario.h>
 
-#include <iostream>
 #include <map>
 #include <stdexcept>
 #include <fstream>
