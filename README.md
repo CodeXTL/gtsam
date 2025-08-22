@@ -13,14 +13,13 @@ mapping (SAM) in robotics and vision, using Factor Graphs and Bayes
 Networks as the underlying computing paradigm rather than sparse
 matrices.
 
-The current support matrix is:
 
-|      Platform      | Compiler  |                                   Build Status                                   |
-| :----------------: | :-------: | :------------------------------------------------------------------------------: |
-| Ubuntu 22.04/24.04 | gcc/clang |   ![Linux CI](https://github.com/borglab/gtsam/workflows/Linux%20CI/badge.svg)   |
-|       macOS        |   clang   |   ![macOS CI](https://github.com/borglab/gtsam/workflows/macOS%20CI/badge.svg)   |
-|      Windows       |   MSVC    | ![Windows CI](https://github.com/borglab/gtsam/workflows/Windows%20CI/badge.svg) |
-
+<!-- Main CI Badges (develop branch) -->
+| CI Status | Platform | Compiler |
+|:----------|:---------|:---------|
+| [![Python CI](https://github.com/borglab/gtsam/actions/workflows/build-python.yml/badge.svg?branch=develop)](https://github.com/borglab/gtsam/actions/workflows/build-python.yml?query=branch%3Adevelop) | Ubuntu 22.04, MacOS 13-14, Windows | gcc/clang,MSVC |
+| [![vcpkg](https://github.com/borglab/gtsam/actions/workflows/vcpkg.yml/badge.svg?branch=develop)](https://github.com/borglab/gtsam/actions/workflows/vcpkg.yml?query=branch%3Adevelop) | Latest Windows/Ubuntu/Mac | - |
+| [![Build Wheels for Develop](https://github.com/borglab/gtsam/actions/workflows/build-cibw.yml/badge.svg?branch=develop)](https://github.com/borglab/gtsam/actions/workflows/build-cibw.yml?query=branch%3Adevelop) | See [pypi files](https://pypi.org/project/gtsam-develop/#files); no Windows| - |
 
 On top of the C++ library, GTSAM includes [wrappers for MATLAB & Python](#wrappers).
 
